@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
@@ -334,14 +335,23 @@ export default function App() {
   const handleExport = () => {
     if (typeof window === 'undefined') return;
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'ai-admin-hr-backup.json';
-    link.click();
-    URL.revokeObjectURL(url);
-    setStatusMessage('Backup downloaded');
+    const workbook = XLSX.utils.book_new();
+    const sheets = [
+      ['Employees', data.employees],
+      ['Leave', data.leaves],
+      ['Payroll', data.payroll],
+      ['Attendance', data.attendance],
+      ['Tasks', data.tasks],
+      ['Recruitment', data.recruitment],
+    ];
+
+    sheets.forEach(([name, rows]) => {
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(workbook, worksheet, name);
+    });
+
+    XLSX.writeFile(workbook, 'ai-admin-hr-report.xlsx');
+    setStatusMessage('Excel report downloaded');
   };
 
   const handleImport = async (event) => {
