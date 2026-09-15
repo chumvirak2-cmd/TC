@@ -1114,7 +1114,6 @@ export default function App() {
             </form>
           )}
 
-          <div className="demo-note">Demo login: admin / admin123 or hr / hr123</div>
         </div>
       </div>
     );
