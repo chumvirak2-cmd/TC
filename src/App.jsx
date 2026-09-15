@@ -120,6 +120,7 @@ export default function App() {
   const [signupForm, setSignupForm] = useState({ username: '', password: '', confirmPassword: '' });
   const [loginError, setLoginError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
 
   const [employeeForm, setEmployeeForm] = useState({
     name: '',
@@ -374,6 +375,11 @@ export default function App() {
     }
   };
 
+  const handleSuggestionClick = (suggestion) => {
+    setAiPrompt(suggestion);
+    setView('AI');
+  };
+
   const renderDashboard = () => (
     <>
       <section className="stats-grid">
@@ -514,7 +520,7 @@ export default function App() {
 
             <div className="suggestion-list">
               {data.aiSuggestions.map((suggestion) => (
-                <button key={suggestion} type="button" className="suggestion-item">
+                <button key={suggestion} type="button" className="suggestion-item" onClick={() => handleSuggestionClick(suggestion)}>
                   {suggestion}
                 </button>
               ))}
@@ -890,7 +896,7 @@ export default function App() {
 
         <div className="suggestion-list">
           {data.aiSuggestions.map((suggestion) => (
-            <button type="button" className="suggestion-item" key={suggestion}>{suggestion}</button>
+            <button type="button" className="suggestion-item" key={suggestion} onClick={() => handleSuggestionClick(suggestion)}>{suggestion}</button>
           ))}
         </div>
       </div>
@@ -906,7 +912,7 @@ export default function App() {
 
         <div className="ai-console">
           <div className="ai-message assistant">I reviewed staff productivity, recruitment flow, and task load. The most urgent action is to finalize the screening stage and prepare payroll review.</div>
-          <div className="ai-message user">Generate an HR summary for leadership.</div>
+          <div className="ai-message user">{aiPrompt || 'Generate an HR summary for leadership.'}</div>
           <div className="ai-message assistant">Leadership summary: 94% attendance, 128 applications received, 6 offers ready, task backlog reduced by 12% vs last month.</div>
         </div>
       </div>
