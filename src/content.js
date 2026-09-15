@@ -31,7 +31,7 @@ export const defaultCategories = [
   },
   {
     id: '06',
-    title: 'AI For Admin & HR',
+    title: 'Smart Biz Management Workflow',
     description:
       'Recruitment, HR documentation, policies, administration, internal communication and employee management.',
   },
@@ -62,11 +62,11 @@ export const defaultCategories = [
 ];
 
 export const defaultCourseItems = [
-  { number: '1', label: 'Prompts for Admin & HR', tone: 'orange' },
+  { number: '1', label: 'Prompts for Smart Biz Workflow', tone: 'orange' },
   { number: '2', label: 'HR Planning with AI', tone: 'green' },
   { number: '3', label: 'HR Policies, SOPs & Compliance with AI', tone: 'orange' },
   { number: '4', label: 'Payroll, Compensation & Benefits System with AI', tone: 'green' },
   { number: '5', label: 'Employee Evaluation System with AI', tone: 'orange' },
   { number: '6', label: 'Training Management & Employee Development with AI', tone: 'green' },
-  { number: '7', label: 'Reports, Dashboards & AI Agents for Admin & HR', tone: 'orange' },
+  { number: '7', label: 'Reports, Dashboards & AI Agents for Smart Biz', tone: 'orange' },
 ];

@@ -399,12 +399,12 @@ export default function App() {
     const topic = request
       .replace(/^(please\s+)?(create|write|draft|make)\s+(a\s+)?/i, '')
       .replace(/proposal\s+(template|draft)?\s*(for|about)?\s*/i, '')
-      .trim() || 'AI for Admin & HR Management';
+      .trim() || 'Smart Biz Management Workflow';
 
     const rows = [
       ['Proposal Template', topic],
       ['Prepared for', '[Client or Department]'],
-      ['Prepared by', 'AI for Admin & HR'],
+      ['Prepared by', 'Smart Biz Management Workflow'],
       ['Date', new Date().toLocaleDateString()],
       ['Executive Summary', `This proposal outlines a practical solution for ${topic}. The goal is to improve operational visibility, reduce manual work, and give decision-makers reliable information in one place.`],
       ['Current Challenge', 'The organization needs a clearer way to manage this area, coordinate responsible teams, and track progress from request to completion.'],
@@ -432,7 +432,7 @@ export default function App() {
     ];
 
     return {
-      text: `PROPOSAL: ${topic.toUpperCase()}\n\nPrepared for: [Client or Department]\nPrepared by: AI for Admin & HR\nDate: ${new Date().toLocaleDateString()}\n\n1. Executive Summary\n${rows[4][1]}\n\n2. Current Challenge\n${rows[5][1]}\n\n3. Proposed Solution\n${rows[6][1]}\n\n4. Scope of Work\n- Confirm requirements and success measures\n- Configure the workflow and responsibilities\n- Prepare templates, reports, and approval steps\n- Test the process with stakeholders\n- Provide handover guidance and support\n\n5. Deliverables\n- Approved workflow and operating checklist\n- Working management dashboard\n- Staff or stakeholder communication template\n- Summary report with recommended next actions\n\n6. Timeline\nPhase 1: Discovery and requirements - [Date]\nPhase 2: Configuration and review - [Date]\nPhase 3: Launch and handover - [Date]\n\n7. Investment\nEstimated investment: [Amount]\nPayment terms: [Terms]\n\n8. Success Measures\n${rows[7][1]}\n\n9. Approval\n${rows[10][1]}`,
+      text: `PROPOSAL: ${topic.toUpperCase()}\n\nPrepared for: [Client or Department]\nPrepared by: Smart Biz Management Workflow\nDate: ${new Date().toLocaleDateString()}\n\n1. Executive Summary\n${rows[4][1]}\n\n2. Current Challenge\n${rows[5][1]}\n\n3. Proposed Solution\n${rows[6][1]}\n\n4. Scope of Work\n- Confirm requirements and success measures\n- Configure the workflow and responsibilities\n- Prepare templates, reports, and approval steps\n- Test the process with stakeholders\n- Provide handover guidance and support\n\n5. Deliverables\n- Approved workflow and operating checklist\n- Working management dashboard\n- Staff or stakeholder communication template\n- Summary report with recommended next actions\n\n6. Timeline\nPhase 1: Discovery and requirements - [Date]\nPhase 2: Configuration and review - [Date]\nPhase 3: Launch and handover - [Date]\n\n7. Investment\nEstimated investment: [Amount]\nPayment terms: [Terms]\n\n8. Success Measures\n${rows[7][1]}\n\n9. Approval\n${rows[10][1]}`,
       rows,
       scopeRows,
       timelineRows,
@@ -1029,7 +1029,7 @@ export default function App() {
     <div className="workspace-panel">
       <div className="panel">
         <div className="panel-header">
-          <h2>AI Admin & HR Assistant</h2>
+          <h2>Smart Biz AI Assistant</h2>
           <span className="badge success">Online</span>
         </div>
 
@@ -1070,7 +1070,7 @@ export default function App() {
       <div className="login-shell">
         <div className="login-box">
           <div className="brand-mark large">AI</div>
-          <h1>Admin & HR Portal</h1>
+          <h1>Smart Biz Management Workflow</h1>
           <p>Sign in to manage employees, leave, payroll, and operations.</p>
 
           {authMode === 'login' ? (
@@ -1126,8 +1126,8 @@ export default function App() {
         <div className="brand-block">
           <div className="brand-mark">AI</div>
           <div>
-            <div className="brand-name">Admin & HR</div>
-            <div className="brand-subtitle">Management Suite</div>
+            <div className="brand-name">Smart Biz</div>
+            <div className="brand-subtitle">Management Workflow</div>
           </div>
         </div>
 
@@ -1157,7 +1157,7 @@ export default function App() {
         <header className="topbar">
           <div>
             <div className="eyebrow">Operations Overview</div>
-            <h1>AI for Admin & HR Management</h1>
+            <h1>Smart Biz Management Workflow</h1>
           </div>
           <div className="topbar-actions">
             <button className="ghost-btn" onClick={handleSave}>Save</button>
