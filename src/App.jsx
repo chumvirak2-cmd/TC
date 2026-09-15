@@ -120,7 +120,10 @@ export default function App() {
   const [signupForm, setSignupForm] = useState({ username: '', password: '', confirmPassword: '' });
   const [loginError, setLoginError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
-  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiInput, setAiInput] = useState('');
+  const [aiMessages, setAiMessages] = useState([
+    { id: 1, role: 'assistant', text: 'Hello. I can create tasks, open HR modules, or help investigate an operations issue.' },
+  ]);
 
   const [employeeForm, setEmployeeForm] = useState({
     name: '',
@@ -376,8 +379,47 @@ export default function App() {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setAiPrompt(suggestion);
+    setAiInput(suggestion);
     setView('AI');
+  };
+
+  const handleAiSubmit = (event) => {
+    event.preventDefault();
+    const request = aiInput.trim();
+    if (!request) return;
+
+    const lowerRequest = request.toLowerCase();
+    let response = 'I can help with that. Try asking me to create a task, review leave, check payroll, or open the employee directory.';
+
+    if (lowerRequest.includes('task') || lowerRequest.includes('todo') || lowerRequest.includes('create')) {
+      const title = request.replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(task|todo)\s*(to|for)?\s*/i, '').trim() || 'Follow up on AI request';
+      setData((current) => ({
+        ...current,
+        tasks: [...current.tasks, { id: makeId('task'), title, owner: 'AI Assistant', time: '09:00', priority: 'Medium' }],
+      }));
+      response = `Done. I created the task "${title}" and added it to the Task Queue.`;
+    } else if (lowerRequest.includes('leave') || lowerRequest.includes('vacation')) {
+      setView('Leave');
+      response = 'I opened Leave Management so you can submit or approve a request.';
+    } else if (lowerRequest.includes('payroll') || lowerRequest.includes('salary')) {
+      setView('Payroll');
+      response = 'I opened Payroll so you can review the current pay cycle.';
+    } else if (lowerRequest.includes('employee') || lowerRequest.includes('staff')) {
+      setView('Employees');
+      response = 'I opened the Employee Directory for you.';
+    } else if (lowerRequest.includes('attendance')) {
+      setView('Attendance');
+      response = 'I opened Attendance Tracker so you can inspect or update records.';
+    } else if (lowerRequest.includes('issue') || lowerRequest.includes('problem') || lowerRequest.includes('help')) {
+      response = 'I can help isolate the issue. Tell me which area is affected, what you expected, and what happened instead.';
+    }
+
+    setAiMessages((current) => [
+      ...current,
+      { id: makeId('message'), role: 'user', text: request },
+      { id: makeId('message'), role: 'assistant', text: response },
+    ]);
+    setAiInput('');
   };
 
   const renderDashboard = () => (
@@ -908,13 +950,24 @@ export default function App() {
       <div className="panel">
         <div className="panel-header">
           <h2>AI Admin & HR Assistant</h2>
+          <span className="badge success">Online</span>
         </div>
 
         <div className="ai-console">
-          <div className="ai-message assistant">I reviewed staff productivity, recruitment flow, and task load. The most urgent action is to finalize the screening stage and prepare payroll review.</div>
-          <div className="ai-message user">{aiPrompt || 'Generate an HR summary for leadership.'}</div>
-          <div className="ai-message assistant">Leadership summary: 94% attendance, 128 applications received, 6 offers ready, task backlog reduced by 12% vs last month.</div>
+          {aiMessages.map((message) => (
+            <div className={`ai-message ${message.role}`} key={message.id}>{message.text}</div>
+          ))}
         </div>
+
+        <form className="ai-chat-form" onSubmit={handleAiSubmit}>
+          <input
+            value={aiInput}
+            onChange={(event) => setAiInput(event.target.value)}
+            placeholder="Ask AI to create a task or solve an issue..."
+            aria-label="Message AI assistant"
+          />
+          <button type="submit" className="primary-btn">Send</button>
+        </form>
       </div>
     </div>
   );
