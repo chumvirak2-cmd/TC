@@ -123,6 +123,7 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [aiInput, setAiInput] = useState('');
   const [aiDocument, setAiDocument] = useState('');
+  const [aiProposalRows, setAiProposalRows] = useState(null);
   const [aiMessages, setAiMessages] = useState([
     { id: 1, role: 'assistant', text: 'Hello. I can create tasks, open HR modules, or help investigate an operations issue.' },
   ]);
@@ -400,7 +401,42 @@ export default function App() {
       .replace(/proposal\s+(template|draft)?\s*(for|about)?\s*/i, '')
       .trim() || 'AI for Admin & HR Management';
 
-    return `PROPOSAL: ${topic.toUpperCase()}\n\nPrepared for: [Client or Department]\nPrepared by: AI for Admin & HR\nDate: ${new Date().toLocaleDateString()}\n\n1. Executive Summary\nThis proposal outlines a practical solution for ${topic}. The goal is to improve operational visibility, reduce manual work, and give decision-makers reliable information in one place.\n\n2. Current Challenge\nThe organization needs a clearer way to manage this area, coordinate responsible teams, and track progress from request to completion.\n\n3. Proposed Solution\nWe will assess the current workflow, configure the required process, assign ownership, and provide a simple reporting view. The solution will be designed for secure, repeatable day-to-day use.\n\n4. Scope of Work\n- Confirm requirements and success measures\n- Configure the workflow and responsibilities\n- Prepare templates, reports, and approval steps\n- Test the process with stakeholders\n- Provide handover guidance and support\n\n5. Deliverables\n- Approved workflow and operating checklist\n- Working management dashboard\n- Staff or stakeholder communication template\n- Summary report with recommended next actions\n\n6. Timeline\nPhase 1: Discovery and requirements - [Date]\nPhase 2: Configuration and review - [Date]\nPhase 3: Launch and handover - [Date]\n\n7. Investment\nEstimated investment: [Amount]\nPayment terms: [Terms]\n\n8. Success Measures\nSuccess will be measured through adoption, turnaround time, data accuracy, and stakeholder satisfaction.\n\n9. Approval\nApproved by: ____________________\nSignature: _______________________\nDate: ____________________________`;
+    const rows = [
+      ['Proposal Template', topic],
+      ['Prepared for', '[Client or Department]'],
+      ['Prepared by', 'AI for Admin & HR'],
+      ['Date', new Date().toLocaleDateString()],
+      ['Executive Summary', `This proposal outlines a practical solution for ${topic}. The goal is to improve operational visibility, reduce manual work, and give decision-makers reliable information in one place.`],
+      ['Current Challenge', 'The organization needs a clearer way to manage this area, coordinate responsible teams, and track progress from request to completion.'],
+      ['Proposed Solution', 'We will assess the current workflow, configure the required process, assign ownership, and provide a simple reporting view.'],
+      ['Success Measures', 'Adoption, turnaround time, data accuracy, and stakeholder satisfaction.'],
+      ['Estimated Investment', '[Amount]'],
+      ['Payment Terms', '[Terms]'],
+      ['Approval', 'Approved by: ____________________  Signature: ____________________  Date: ____________________'],
+    ];
+
+    const scopeRows = [
+      ['Order', 'Scope of Work', 'Owner', 'Status'],
+      [1, 'Confirm requirements and success measures', '[Owner]', 'Not started'],
+      [2, 'Configure the workflow and responsibilities', '[Owner]', 'Not started'],
+      [3, 'Prepare templates, reports, and approval steps', '[Owner]', 'Not started'],
+      [4, 'Test the process with stakeholders', '[Owner]', 'Not started'],
+      [5, 'Provide handover guidance and support', '[Owner]', 'Not started'],
+    ];
+
+    const timelineRows = [
+      ['Phase', 'Activity', 'Target Date', 'Status'],
+      ['Phase 1', 'Discovery and requirements', '[Date]', 'Not started'],
+      ['Phase 2', 'Configuration and review', '[Date]', 'Not started'],
+      ['Phase 3', 'Launch and handover', '[Date]', 'Not started'],
+    ];
+
+    return {
+      text: `PROPOSAL: ${topic.toUpperCase()}\n\nPrepared for: [Client or Department]\nPrepared by: AI for Admin & HR\nDate: ${new Date().toLocaleDateString()}\n\n1. Executive Summary\n${rows[4][1]}\n\n2. Current Challenge\n${rows[5][1]}\n\n3. Proposed Solution\n${rows[6][1]}\n\n4. Scope of Work\n- Confirm requirements and success measures\n- Configure the workflow and responsibilities\n- Prepare templates, reports, and approval steps\n- Test the process with stakeholders\n- Provide handover guidance and support\n\n5. Deliverables\n- Approved workflow and operating checklist\n- Working management dashboard\n- Staff or stakeholder communication template\n- Summary report with recommended next actions\n\n6. Timeline\nPhase 1: Discovery and requirements - [Date]\nPhase 2: Configuration and review - [Date]\nPhase 3: Launch and handover - [Date]\n\n7. Investment\nEstimated investment: [Amount]\nPayment terms: [Terms]\n\n8. Success Measures\n${rows[7][1]}\n\n9. Approval\n${rows[10][1]}`,
+      rows,
+      scopeRows,
+      timelineRows,
+    };
   };
 
   const handleCopyDocument = async () => {
@@ -410,15 +446,16 @@ export default function App() {
   };
 
   const handleDownloadDocument = () => {
-    if (!aiDocument || typeof window === 'undefined') return;
-    const blob = new Blob([aiDocument], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'ai-proposal-template.txt';
-    link.click();
-    URL.revokeObjectURL(url);
-    setStatusMessage('AI document downloaded');
+    if (!aiProposalRows || typeof window === 'undefined') return;
+    const workbook = XLSX.utils.book_new();
+    const proposalSheet = XLSX.utils.aoa_to_sheet(aiProposalRows.rows);
+    const scopeSheet = XLSX.utils.aoa_to_sheet(aiProposalRows.scopeRows);
+    const timelineSheet = XLSX.utils.aoa_to_sheet(aiProposalRows.timelineRows);
+    XLSX.utils.book_append_sheet(workbook, proposalSheet, 'Proposal');
+    XLSX.utils.book_append_sheet(workbook, scopeSheet, 'Scope of Work');
+    XLSX.utils.book_append_sheet(workbook, timelineSheet, 'Timeline');
+    XLSX.writeFile(workbook, 'ai-proposal-template.xlsx');
+    setStatusMessage('Proposal Excel template downloaded');
   };
 
   const handleAiSubmit = (event) => {
@@ -431,8 +468,9 @@ export default function App() {
 
     if (lowerRequest.includes('proposal') || lowerRequest.includes('template') || lowerRequest.includes('letter') || lowerRequest.includes('policy')) {
       const proposal = makeProposalTemplate(request);
-      setAiDocument(proposal);
-      response = 'Done. I created an editable proposal template below. Replace the bracketed fields with your client details.';
+      setAiDocument(proposal.text);
+      setAiProposalRows(proposal);
+      response = 'Done. I created an editable proposal template and an Excel workbook with Proposal, Scope of Work, and Timeline sheets.';
     } else if (lowerRequest.includes('task') || lowerRequest.includes('todo') || lowerRequest.includes('create')) {
       const title = request.replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(task|todo)\s*(to|for)?\s*/i, '').trim() || 'Follow up on AI request';
       setData((current) => ({
@@ -1017,7 +1055,7 @@ export default function App() {
               <h3>Generated document</h3>
               <div className="document-actions">
                 <button type="button" className="small-btn" onClick={handleCopyDocument}>Copy</button>
-                <button type="button" className="small-btn" onClick={handleDownloadDocument}>Download</button>
+                <button type="button" className="small-btn" onClick={handleDownloadDocument}>Download Excel</button>
               </div>
             </div>
             <textarea value={aiDocument} onChange={(event) => setAiDocument(event.target.value)} aria-label="Generated AI document" />
