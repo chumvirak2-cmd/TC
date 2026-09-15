@@ -757,6 +757,31 @@ th {
   flex: 0 0 auto;
 }
 
+.ai-document-panel {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.ai-document-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-document-panel textarea {
+  width: 100%;
+  min-height: 360px;
+  margin-top: 10px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+}
+
 @media (max-width: 1100px) {
   .dashboard-shell {
     grid-template-columns: 1fr;

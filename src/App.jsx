@@ -121,6 +121,7 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [aiInput, setAiInput] = useState('');
+  const [aiDocument, setAiDocument] = useState('');
   const [aiMessages, setAiMessages] = useState([
     { id: 1, role: 'assistant', text: 'Hello. I can create tasks, open HR modules, or help investigate an operations issue.' },
   ]);
@@ -383,6 +384,33 @@ export default function App() {
     setView('AI');
   };
 
+  const makeProposalTemplate = (request) => {
+    const topic = request
+      .replace(/^(please\s+)?(create|write|draft|make)\s+(a\s+)?/i, '')
+      .replace(/proposal\s+(template|draft)?\s*(for|about)?\s*/i, '')
+      .trim() || 'AI for Admin & HR Management';
+
+    return `PROPOSAL: ${topic.toUpperCase()}\n\nPrepared for: [Client or Department]\nPrepared by: AI for Admin & HR\nDate: ${new Date().toLocaleDateString()}\n\n1. Executive Summary\nThis proposal outlines a practical solution for ${topic}. The goal is to improve operational visibility, reduce manual work, and give decision-makers reliable information in one place.\n\n2. Current Challenge\nThe organization needs a clearer way to manage this area, coordinate responsible teams, and track progress from request to completion.\n\n3. Proposed Solution\nWe will assess the current workflow, configure the required process, assign ownership, and provide a simple reporting view. The solution will be designed for secure, repeatable day-to-day use.\n\n4. Scope of Work\n- Confirm requirements and success measures\n- Configure the workflow and responsibilities\n- Prepare templates, reports, and approval steps\n- Test the process with stakeholders\n- Provide handover guidance and support\n\n5. Deliverables\n- Approved workflow and operating checklist\n- Working management dashboard\n- Staff or stakeholder communication template\n- Summary report with recommended next actions\n\n6. Timeline\nPhase 1: Discovery and requirements - [Date]\nPhase 2: Configuration and review - [Date]\nPhase 3: Launch and handover - [Date]\n\n7. Investment\nEstimated investment: [Amount]\nPayment terms: [Terms]\n\n8. Success Measures\nSuccess will be measured through adoption, turnaround time, data accuracy, and stakeholder satisfaction.\n\n9. Approval\nApproved by: ____________________\nSignature: _______________________\nDate: ____________________________`;
+  };
+
+  const handleCopyDocument = async () => {
+    if (!aiDocument || typeof navigator === 'undefined') return;
+    await navigator.clipboard.writeText(aiDocument);
+    setStatusMessage('AI document copied to clipboard');
+  };
+
+  const handleDownloadDocument = () => {
+    if (!aiDocument || typeof window === 'undefined') return;
+    const blob = new Blob([aiDocument], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ai-proposal-template.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatusMessage('AI document downloaded');
+  };
+
   const handleAiSubmit = (event) => {
     event.preventDefault();
     const request = aiInput.trim();
@@ -391,7 +419,11 @@ export default function App() {
     const lowerRequest = request.toLowerCase();
     let response = 'I can help with that. Try asking me to create a task, review leave, check payroll, or open the employee directory.';
 
-    if (lowerRequest.includes('task') || lowerRequest.includes('todo') || lowerRequest.includes('create')) {
+    if (lowerRequest.includes('proposal') || lowerRequest.includes('template') || lowerRequest.includes('letter') || lowerRequest.includes('policy')) {
+      const proposal = makeProposalTemplate(request);
+      setAiDocument(proposal);
+      response = 'Done. I created an editable proposal template below. Replace the bracketed fields with your client details.';
+    } else if (lowerRequest.includes('task') || lowerRequest.includes('todo') || lowerRequest.includes('create')) {
       const title = request.replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(task|todo)\s*(to|for)?\s*/i, '').trim() || 'Follow up on AI request';
       setData((current) => ({
         ...current,
@@ -968,6 +1000,19 @@ export default function App() {
           />
           <button type="submit" className="primary-btn">Send</button>
         </form>
+
+        {aiDocument && (
+          <div className="ai-document-panel">
+            <div className="panel-header">
+              <h3>Generated document</h3>
+              <div className="document-actions">
+                <button type="button" className="small-btn" onClick={handleCopyDocument}>Copy</button>
+                <button type="button" className="small-btn" onClick={handleDownloadDocument}>Download</button>
+              </div>
+            </div>
+            <textarea value={aiDocument} onChange={(event) => setAiDocument(event.target.value)} aria-label="Generated AI document" />
+          </div>
+        )}
       </div>
     </div>
   );
