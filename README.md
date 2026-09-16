@@ -16,3 +16,7 @@ The app works in Local mode by default. To sync attendance and CMS changes betwe
 The dashboard will show `Cloud sync` when the environment variables are active. Without them, it shows `Local mode` and keeps using browser storage.
 
 For QR attendance, set `VITE_PUBLIC_APP_URL` to the deployed URL. Scanning a QR from a localhost development URL cannot work on an employee phone.
+
+## Gemini Assistant Setup
+
+The assistant works in Local mode without credentials. To enable Gemini for open-ended questions, add `VITE_GEMINI_API_KEY` and optionally `VITE_GEMINI_MODEL` to `.env.local`, then restart Vite. Workflow commands such as creating tasks, opening modules, and generating templates continue to run locally. Because Vite exposes `VITE_*` values in the browser, use a restricted Gemini key and set API restrictions in Google AI Studio.

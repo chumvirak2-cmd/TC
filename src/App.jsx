@@ -6,6 +6,8 @@ import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
 
 const defaultData = {
   employees: [
@@ -118,6 +120,38 @@ function normalizeData(value) {
   return merged;
 }
 
+async function askGemini(request, data) {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: 'You are the Smart Biz operations assistant. Give concise, practical answers based only on the supplied business snapshot. Never invent employee, payroll, or policy facts. If the request needs a data change, explain that the user should use the relevant module.' }],
+      },
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `${request}\n\nBusiness snapshot:\n${JSON.stringify({
+            employees: data.employees.map(({ name, role, team, status, score }) => ({ name, role, team, status, score })),
+            pendingLeave: data.leaves.filter((item) => item.status === 'Pending').length,
+            payroll: data.payroll.map(({ name, total, status }) => ({ name, total, status })),
+            recruitment: data.recruitment,
+            performance: data.performance,
+          })}`,
+        }],
+      }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini request failed with status ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Gemini returned an empty response.';
+}
+
 export default function App() {
   const fileInputRef = useRef(null);
   const [data, setData] = useState(() => normalizeData(readSavedData()) || defaultData);
@@ -131,6 +165,7 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [aiInput, setAiInput] = useState('');
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const [aiDocument, setAiDocument] = useState('');
   const [aiProposalRows, setAiProposalRows] = useState(null);
   const [aiMessages, setAiMessages] = useState([
@@ -629,10 +664,12 @@ export default function App() {
     setStatusMessage('Proposal Excel template downloaded');
   };
 
-  const handleAiSubmit = (event) => {
+  const handleAiSubmit = async (event) => {
     event.preventDefault();
     const request = aiInput.trim();
-    if (!request) return;
+    if (!request || isAiThinking) return;
+
+    setIsAiThinking(true);
 
     const lowerRequest = request.toLowerCase();
     let response = 'I can help with Smart Biz operations. Ask for a summary, employee details, leave, payroll, attendance, recruitment, a policy or proposal, or tell me an issue to capture and solve.';
@@ -686,12 +723,22 @@ export default function App() {
       response = 'I can open modules, summarize current data, look up employees, create tasks, generate proposal or policy templates, and capture operational issues. Tell me the outcome you need.';
     }
 
+    if (response === 'I can help with Smart Biz operations. Ask for a summary, employee details, leave, payroll, attendance, recruitment, a policy or proposal, or tell me an issue to capture and solve.' && GEMINI_API_KEY) {
+      try {
+        response = await askGemini(request, data);
+      } catch (error) {
+        console.error('Gemini request failed', error);
+        response = 'I could not reach Gemini right now. Try again, or ask me to summarize data, open a module, create a task, or generate a document.';
+      }
+    }
+
     setAiMessages((current) => [
       ...current,
       { id: makeId('message'), role: 'user', text: request },
       { id: makeId('message'), role: 'assistant', text: response },
     ]);
     setAiInput('');
+    setIsAiThinking(false);
   };
 
   const renderDashboard = () => (
@@ -1270,7 +1317,7 @@ export default function App() {
       <div className="panel">
         <div className="panel-header">
           <h2>Smart Biz AI Assistant</h2>
-          <span className="badge success">Online</span>
+          <span className={`badge ${GEMINI_API_KEY ? 'success' : 'neutral'}`}>{GEMINI_API_KEY ? 'Gemini ready' : 'Local mode'}</span>
         </div>
 
         <div className="ai-console">
@@ -1286,7 +1333,7 @@ export default function App() {
             placeholder="Ask AI to create a task or solve an issue..."
             aria-label="Message AI assistant"
           />
-          <button type="submit" className="primary-btn">Send</button>
+          <button type="submit" className="primary-btn" disabled={isAiThinking}>{isAiThinking ? 'Thinking...' : 'Send'}</button>
         </form>
 
         {aiDocument && (
