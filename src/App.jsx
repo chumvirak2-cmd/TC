@@ -7,7 +7,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase';
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-flash-latest';
 
 const defaultData = {
   employees: [
