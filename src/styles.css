@@ -639,6 +639,45 @@ th {
   font-size: 0.9rem;
 }
 
+.employee-home {
+  max-width: 760px;
+}
+
+.employee-welcome h2 {
+  margin: 6px 0;
+  font-size: 1.7rem;
+}
+
+.employee-welcome p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.employee-status-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.profile-grid div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: var(--bg-soft);
+  border-radius: 10px;
+}
+
+.profile-grid span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 .status-chip.blue {
   background: var(--primary-soft);
   color: var(--primary);

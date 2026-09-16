@@ -60,8 +60,8 @@ const defaultData = {
 const navItems = ['Dashboard', 'Employees', 'Leave', 'Payroll', 'Attendance', 'Recruitment', 'Tasks', 'AI'];
 
 const defaultUsers = {
-  admin: 'admin123',
-  hr: 'hr123',
+  admin: { password: 'admin123', role: 'admin' },
+  hr: { password: 'hr123', role: 'admin' },
 };
 
 function readSavedData() {
@@ -81,7 +81,12 @@ function readSavedUsers() {
 
   try {
     const saved = window.localStorage.getItem(USERS_STORAGE_KEY);
-    return saved ? { ...defaultUsers, ...JSON.parse(saved) } : defaultUsers;
+    if (!saved) return defaultUsers;
+    const parsed = JSON.parse(saved);
+    return Object.entries({ ...defaultUsers, ...parsed }).reduce((result, [username, value]) => {
+      result[username] = typeof value === 'string' ? { password: value, role: username === 'admin' || username === 'hr' ? 'admin' : 'employee' } : value;
+      return result;
+    }, {});
   } catch (error) {
     console.warn('Unable to read saved users', error);
     return defaultUsers;
@@ -118,10 +123,11 @@ export default function App() {
   const [data, setData] = useState(() => normalizeData(readSavedData()) || defaultData);
   const [view, setView] = useState('Dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState(() => readSavedUsers());
   const [authMode, setAuthMode] = useState('login');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [signupForm, setSignupForm] = useState({ username: '', password: '', confirmPassword: '' });
+  const [signupForm, setSignupForm] = useState({ name: '', username: '', password: '', confirmPassword: '' });
   const [loginError, setLoginError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [aiInput, setAiInput] = useState('');
@@ -243,9 +249,12 @@ export default function App() {
   const handleLogin = (event) => {
     event.preventDefault();
 
-    const validPassword = users[loginForm.username.trim().toLowerCase()];
-    if (validPassword && validPassword === loginForm.password) {
+    const username = loginForm.username.trim().toLowerCase();
+    const account = users[username];
+    if (account && account.password === loginForm.password) {
       setIsAuthenticated(true);
+      setCurrentUser({ username, ...account });
+      setView(account.role === 'admin' ? 'Dashboard' : 'Employee Home');
       setLoginError('');
       return;
     }
@@ -257,8 +266,8 @@ export default function App() {
     event.preventDefault();
     const username = signupForm.username.trim().toLowerCase();
 
-    if (username.length < 3 || signupForm.password.length < 6) {
-      setLoginError('Username needs 3+ characters and password needs 6+ characters');
+    if (signupForm.name.trim().length < 2 || username.length < 3 || signupForm.password.length < 6) {
+      setLoginError('Enter your name, a username with 3+ characters, and a password with 6+ characters');
       return;
     }
 
@@ -272,13 +281,25 @@ export default function App() {
       return;
     }
 
-    const nextUsers = { ...users, [username]: signupForm.password };
+    const employeeId = makeId('employee');
+    const nextUsers = { ...users, [username]: { password: signupForm.password, role: 'employee', employeeId, name: signupForm.name.trim() } };
     setUsers(nextUsers);
     window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(nextUsers));
+    setData((current) => ({
+      ...current,
+      employees: [...current.employees, { id: employeeId, name: signupForm.name.trim(), role: 'Employee', team: 'New Team', status: 'Present', score: 0 }],
+      attendance: [...current.attendance, { employee: signupForm.name.trim(), mon: 'Present', tue: 'Present', wed: 'Present', thu: 'Present', fri: 'Present' }],
+    }));
     setLoginForm({ username, password: signupForm.password });
-    setSignupForm({ username: '', password: '', confirmPassword: '' });
+    setSignupForm({ name: '', username: '', password: '', confirmPassword: '' });
     setAuthMode('login');
     setLoginError('Account created. You can now sign in.');
+  };
+
+  const handleEmployeeLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setView('Dashboard');
   };
 
   const handleEmployeeSubmit = (event) => {
@@ -1263,6 +1284,47 @@ export default function App() {
     </div>
   );
 
+  const renderEmployeeHome = () => {
+    const employee = data.employees.find((item) => item.id === currentUser?.employeeId || item.name === currentUser?.name);
+    if (!employee) return null;
+
+    return (
+      <div className="workspace-panel employee-home">
+        <div className="panel employee-welcome">
+          <div className="eyebrow">Employee workspace</div>
+          <h2>Welcome, {employee.name}</h2>
+          <p>Update your attendance and review your profile information.</p>
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Today&apos;s attendance</h2>
+              <div className="task-meta">Choose the status that applies today.</div>
+            </div>
+            <span className="status-chip green">{employee.status}</span>
+          </div>
+          <div className="employee-status-actions">
+            {['Present', 'Absent', 'Remote'].map((status) => (
+              <button key={status} type="button" className={`phone-status-button ${status.toLowerCase()} ${employee.status === status ? 'selected' : ''}`} onClick={() => handleEmployeeStatus(employee.name, status)}>
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel profile-summary">
+          <div className="panel-header"><h2>My profile</h2><span className="badge neutral">Employee</span></div>
+          <div className="profile-grid">
+            <div><span>Role</span><strong>{employee.role}</strong></div>
+            <div><span>Team</span><strong>{employee.team}</strong></div>
+            <div><span>Performance score</span><strong>{employee.score}%</strong></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (phoneCheckinId) {
     return renderPhoneCheckin() || (
       <div className="login-shell"><div className="login-box"><h1>Check-in link expired</h1><p>Ask your administrator for a new QR code.</p></div></div>
@@ -1296,6 +1358,11 @@ export default function App() {
             </form>
           ) : (
             <form className="login-form" onSubmit={handleSignup}>
+              <label className="field-group">
+                <span>Full name</span>
+                <input value={signupForm.name} onChange={(event) => setSignupForm({ ...signupForm, name: event.target.value })} placeholder="Your full name" />
+              </label>
+
               <label className="field-group">
                 <span>Username</span>
                 <input value={signupForm.username} onChange={(event) => setSignupForm({ ...signupForm, username: event.target.value })} placeholder="your-name" />
@@ -1335,7 +1402,7 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          {navItems.map((item) => (
+          {(currentUser?.role === 'employee' ? ['Employee Home'] : navItems).map((item) => (
             <button
               key={item}
               type="button"
@@ -1353,7 +1420,7 @@ export default function App() {
           <div className="mini-note">Productivity uplift this month</div>
         </div>
 
-        <button type="button" className="reset-btn" onClick={handleReset}>Reset Data</button>
+        {currentUser?.role === 'admin' && <button type="button" className="reset-btn" onClick={handleReset}>Reset Data</button>}
       </aside>
 
       <main className="main-panel">
@@ -1370,8 +1437,8 @@ export default function App() {
             <button className="ghost-btn" onClick={handleLoad}>Load</button>
             <button className="ghost-btn" onClick={handleExport}>Export</button>
             <button className="ghost-btn" onClick={() => fileInputRef.current?.click()}>Import</button>
-            <button className="ghost-btn" onClick={() => setIsAuthenticated(false)}>Logout</button>
-            <button className="primary-btn" onClick={() => setView('Employees')}>Add Employee</button>
+            <button className="ghost-btn" onClick={handleEmployeeLogout}>Logout</button>
+            {currentUser?.role === 'admin' && <button className="primary-btn" onClick={() => setView('Employees')}>Add Employee</button>}
           </div>
         </header>
 
@@ -1385,7 +1452,8 @@ export default function App() {
 
         {statusMessage && <div className="status-banner">{statusMessage}</div>}
 
-        {view === 'Dashboard' && renderDashboard()}
+        {view === 'Dashboard' && currentUser?.role === 'admin' && renderDashboard()}
+        {view === 'Employee Home' && currentUser?.role === 'employee' && renderEmployeeHome()}
         {view === 'Employees' && renderEmployees()}
         {view === 'Leave' && renderLeave()}
         {view === 'Payroll' && renderPayroll()}
