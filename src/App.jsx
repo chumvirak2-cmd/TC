@@ -635,13 +635,35 @@ export default function App() {
     if (!request) return;
 
     const lowerRequest = request.toLowerCase();
-    let response = 'I can help with that. Try asking me to create a task, review leave, check payroll, or open the employee directory.';
+    let response = 'I can help with Smart Biz operations. Ask for a summary, employee details, leave, payroll, attendance, recruitment, a policy or proposal, or tell me an issue to capture and solve.';
+
+    const matchedEmployee = data.employees.find((person) => lowerRequest.includes(person.name.toLowerCase()));
 
     if (lowerRequest.includes('proposal') || lowerRequest.includes('template') || lowerRequest.includes('letter') || lowerRequest.includes('policy')) {
       const proposal = makeProposalTemplate(request);
       setAiDocument(proposal.text);
       setAiProposalRows(proposal);
       response = 'Done. I created an editable proposal template and an Excel workbook with Proposal, Scope of Work, and Timeline sheets.';
+    } else if (matchedEmployee && (lowerRequest.includes('who') || lowerRequest.includes('detail') || lowerRequest.includes('status') || lowerRequest.includes('profile'))) {
+      response = `${matchedEmployee.name} is a ${matchedEmployee.role} in ${matchedEmployee.team}. Current status: ${matchedEmployee.status}. Performance score: ${matchedEmployee.score}%.`;
+    } else if (lowerRequest.includes('summary') || lowerRequest.includes('dashboard') || lowerRequest.includes('overview')) {
+      const pendingPayroll = data.payroll.filter((item) => item.status === 'Pending').length;
+      response = `Current overview: ${stats.totalStaff} staff, ${stats.attendance}% attendance, ${stats.pendingLeaves} pending leave requests, ${pendingPayroll} pending payroll items, and ${stats.openRoles} applications in the recruitment pipeline.`;
+      setView('Dashboard');
+    } else if (lowerRequest.includes('leave') || lowerRequest.includes('vacation') || lowerRequest.includes('time off')) {
+      const pending = data.leaves.filter((item) => item.status === 'Pending');
+      setView('Leave');
+      response = `I found ${pending.length} pending leave request${pending.length === 1 ? '' : 's'} and opened Leave Management for review.`;
+    } else if (lowerRequest.includes('payroll') || lowerRequest.includes('salary') || lowerRequest.includes('pay')) {
+      const pending = data.payroll.filter((item) => item.status === 'Pending');
+      setView('Payroll');
+      response = `Payroll total is $${stats.payroll.toLocaleString()}. ${pending.length} item${pending.length === 1 ? '' : 's'} still need review.`;
+    } else if (lowerRequest.includes('recruit') || lowerRequest.includes('hiring') || lowerRequest.includes('candidate')) {
+      setView('Recruitment');
+      response = `Recruitment pipeline: ${data.recruitment.map((item) => `${item.stage} ${item.count}`).join(', ')}. I opened the pipeline for updates.`;
+    } else if (lowerRequest.includes('attendance') || lowerRequest.includes('present') || lowerRequest.includes('absent') || lowerRequest.includes('remote')) {
+      setView('Attendance');
+      response = `Attendance is currently ${stats.attendance}%. I opened Attendance Tracker so statuses can be reviewed or updated.`;
     } else if (lowerRequest.includes('task') || lowerRequest.includes('todo') || lowerRequest.includes('create')) {
       const title = request.replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(task|todo)\s*(to|for)?\s*/i, '').trim() || 'Follow up on AI request';
       setData((current) => ({
@@ -649,20 +671,19 @@ export default function App() {
         tasks: [...current.tasks, { id: makeId('task'), title, owner: 'AI Assistant', time: '09:00', priority: 'Medium' }],
       }));
       response = `Done. I created the task "${title}" and added it to the Task Queue.`;
-    } else if (lowerRequest.includes('leave') || lowerRequest.includes('vacation')) {
-      setView('Leave');
-      response = 'I opened Leave Management so you can submit or approve a request.';
-    } else if (lowerRequest.includes('payroll') || lowerRequest.includes('salary')) {
-      setView('Payroll');
-      response = 'I opened Payroll so you can review the current pay cycle.';
-    } else if (lowerRequest.includes('employee') || lowerRequest.includes('staff')) {
+    } else if (lowerRequest.includes('employee') || lowerRequest.includes('staff') || lowerRequest.includes('people')) {
       setView('Employees');
       response = 'I opened the Employee Directory for you.';
-    } else if (lowerRequest.includes('attendance')) {
-      setView('Attendance');
-      response = 'I opened Attendance Tracker so you can inspect or update records.';
-    } else if (lowerRequest.includes('issue') || lowerRequest.includes('problem') || lowerRequest.includes('help')) {
-      response = 'I can help isolate the issue. Tell me which area is affected, what you expected, and what happened instead.';
+    } else if (lowerRequest.includes('issue') || lowerRequest.includes('problem') || lowerRequest.includes('error') || lowerRequest.includes('broken') || lowerRequest.includes('solve')) {
+      const title = `Investigate: ${request.slice(0, 90)}`;
+      setData((current) => ({
+        ...current,
+        tasks: [...current.tasks, { id: makeId('task'), title, owner: 'AI Assistant', time: '09:00', priority: 'High' }],
+      }));
+      setView('Tasks');
+      response = `I captured this as a High priority task: "${title}". I opened the Task Queue so the owner can add details and track the fix.`;
+    } else if (lowerRequest.includes('how') || lowerRequest.includes('help')) {
+      response = 'I can open modules, summarize current data, look up employees, create tasks, generate proposal or policy templates, and capture operational issues. Tell me the outcome you need.';
     }
 
     setAiMessages((current) => [
