@@ -7,6 +7,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase';
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
 const GEMINI_ENDPOINT = '/api/gemini';
+const IS_GEMINI_READY = true;
 
 const defaultData = {
   employees: [
@@ -1300,7 +1301,7 @@ export default function App() {
       <div className="panel">
         <div className="panel-header">
           <h2>Smart Biz AI Assistant</h2>
-          <span className={`badge ${GEMINI_API_KEY ? 'success' : 'neutral'}`}>{GEMINI_API_KEY ? 'Gemini ready' : 'Local mode'}</span>
+          <span className={`badge ${IS_GEMINI_READY ? 'success' : 'neutral'}`}>{IS_GEMINI_READY ? 'Gemini ready' : 'Local mode'}</span>
         </div>
 
         <div className="ai-console">
