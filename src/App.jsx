@@ -460,6 +460,20 @@ export default function App() {
     setStatusMessage('Excel report downloaded');
   };
 
+  const handleTelegramEmployeeReport = () => {
+    if (typeof window === 'undefined') return;
+
+    const report = [
+      'Smart Biz Management Workflow - Employee Report',
+      `Generated: ${new Date().toLocaleString()}`,
+      '',
+      ...data.employees.map((person, index) => `${index + 1}. ${person.name} | ${person.role} | ${person.team} | ${person.status} | Score: ${person.score}%`),
+    ].join('\n');
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(report)}`;
+    window.open(telegramUrl, '_blank', 'noopener,noreferrer');
+    setStatusMessage('Telegram share opened');
+  };
+
   const handleImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -763,7 +777,10 @@ export default function App() {
       <div className="panel list-panel">
         <div className="panel-header">
           <h2>Employee Directory</h2>
-          <button className="tiny-btn" onClick={() => setView('Dashboard')}>Back</button>
+          <div className="panel-header-actions">
+            <button className="small-btn telegram-btn" onClick={handleTelegramEmployeeReport}>Send Telegram</button>
+            <button className="tiny-btn" onClick={() => setView('Dashboard')}>Back</button>
+          </div>
         </div>
 
         <table>

@@ -382,6 +382,18 @@ button {
   margin-bottom: 18px;
 }
 
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.telegram-btn {
+  color: #087eaf;
+  border-color: #9bd9ee;
+  background: #effaff;
+}
+
 .panel-header h2 {
   margin: 0;
   font-size: 1.1rem;
