@@ -6,8 +6,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-flash-latest';
+const GEMINI_ENDPOINT = '/api/gemini';
 
 const defaultData = {
   employees: [
@@ -121,35 +120,19 @@ function normalizeData(value) {
 }
 
 async function askGemini(request, data) {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(GEMINI_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: 'You are the Smart Biz operations assistant. Give concise, practical answers based only on the supplied business snapshot. Never invent employee, payroll, or policy facts. If the request needs a data change, explain that the user should use the relevant module.' }],
-      },
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: `${request}\n\nBusiness snapshot:\n${JSON.stringify({
-            employees: data.employees.map(({ name, role, team, status, score }) => ({ name, role, team, status, score })),
-            pendingLeave: data.leaves.filter((item) => item.status === 'Pending').length,
-            payroll: data.payroll.map(({ name, total, status }) => ({ name, total, status })),
-            recruitment: data.recruitment,
-            performance: data.performance,
-          })}`,
-        }],
-      }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
-    }),
+    body: JSON.stringify({ request, data }),
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini request failed with status ${response.status}`);
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Gemini request failed with status ${response.status}`);
   }
 
   const result = await response.json();
-  return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Gemini returned an empty response.';
+  return result.text || 'Gemini returned an empty response.';
 }
 
 export default function App() {
@@ -723,7 +706,7 @@ export default function App() {
       response = 'I can open modules, summarize current data, look up employees, create tasks, generate proposal or policy templates, and capture operational issues. Tell me the outcome you need.';
     }
 
-    if (response === 'I can help with Smart Biz operations. Ask for a summary, employee details, leave, payroll, attendance, recruitment, a policy or proposal, or tell me an issue to capture and solve.' && GEMINI_API_KEY) {
+    if (response === 'I can help with Smart Biz operations. Ask for a summary, employee details, leave, payroll, attendance, recruitment, a policy or proposal, or tell me an issue to capture and solve.') {
       try {
         response = await askGemini(request, data);
       } catch (error) {

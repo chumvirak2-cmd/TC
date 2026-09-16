@@ -19,4 +19,11 @@ For QR attendance, set `VITE_PUBLIC_APP_URL` to the deployed URL. Scanning a QR 
 
 ## Gemini Assistant Setup
 
-The assistant works in Local mode without credentials. To enable Gemini for open-ended questions, add `VITE_GEMINI_API_KEY` and optionally `VITE_GEMINI_MODEL` to `.env.local`, then restart Vite. Workflow commands such as creating tasks, opening modules, and generating templates continue to run locally. Because Vite exposes `VITE_*` values in the browser, use a restricted Gemini key and set API restrictions in Google AI Studio.
+The assistant works in Local mode without credentials. For production on Vercel, add the API key and model as server-side environment variables in your Vercel project settings:
+
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional, defaults to `gemini-flash-latest`)
+
+The app calls the secure endpoint in [api/gemini.js](api/gemini.js), which keeps the key off the browser and inside the Vercel runtime. If you use local development, you can also add these values to `.env.local` for testing, but do not expose them as `VITE_*` variables.
+
+Workflow commands such as creating tasks, opening modules, and generating templates continue to run locally. For Google AI Studio, use a restricted Gemini key and set API restrictions to limit exposure.
