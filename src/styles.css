@@ -520,6 +520,113 @@ th {
   color: #166534;
 }
 
+.attendance-status-grid {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 24px;
+}
+
+.attendance-person {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.attendance-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-soft);
+  border-radius: 10px;
+}
+
+.status-toggle {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-toggle.selected.present { background: var(--success-soft); color: #166534; }
+.status-toggle.selected.absent { background: #fee2e2; color: #991b1b; }
+.status-toggle.selected.remote { background: #dbeafe; color: #1d4ed8; }
+
+.qr-panel {
+  text-align: center;
+}
+
+.qr-panel .panel-header {
+  text-align: left;
+}
+
+.attendance-qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 12px auto;
+}
+
+.phone-checkin-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: linear-gradient(145deg, #f0fdf4, #eff6ff);
+}
+
+.phone-checkin-box {
+  width: min(100%, 430px);
+  padding: 28px 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
+  text-align: center;
+}
+
+.phone-checkin-box h1 {
+  margin: 8px 0;
+  font-size: 1.7rem;
+}
+
+.phone-checkin-box p {
+  color: var(--muted);
+}
+
+.phone-status-grid {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0 18px;
+}
+
+.phone-status-button {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.phone-status-button.selected.present { border-color: #86efac; background: var(--success-soft); color: #166534; }
+.phone-status-button.selected.absent { border-color: #fca5a5; background: #fee2e2; color: #991b1b; }
+.phone-status-button.selected.remote { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+
+.phone-checkin-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .status-chip.blue {
   background: var(--primary-soft);
   color: var(--primary);

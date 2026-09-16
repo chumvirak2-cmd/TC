@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
+import QRCode from 'qrcode';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
@@ -152,12 +153,31 @@ export default function App() {
 
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [qrEmployeeId, setQrEmployeeId] = useState(null);
+  const [qrImage, setQrImage] = useState('');
+  const [phoneCheckinId] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('checkin') || '';
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
   }, [data]);
+
+  useEffect(() => {
+    const employee = data.employees.find((item) => String(item.id) === String(qrEmployeeId));
+    if (!employee || typeof window === 'undefined') {
+      setQrImage('');
+      return;
+    }
+
+    const checkInUrl = `${window.location.origin}${window.location.pathname}?checkin=${encodeURIComponent(employee.id)}`;
+    QRCode.toDataURL(checkInUrl, { width: 220, margin: 2 })
+      .then(setQrImage)
+      .catch(() => setQrImage(''));
+  }, [data.employees, qrEmployeeId]);
 
   const stats = useMemo(() => ({
     totalStaff: data.employees.length,
@@ -312,6 +332,40 @@ export default function App() {
         item.employee === employee ? { ...item, [day]: value } : item,
       ),
     }));
+  };
+
+  const handleEmployeeStatus = (employeeName, status) => {
+    setData((current) => ({
+      ...current,
+      employees: current.employees.map((item) => (item.name === employeeName ? { ...item, status } : item)),
+      attendance: current.attendance.map((item) => (item.employee === employeeName ? { ...item, today: status } : item)),
+    }));
+    setStatusMessage(`${employeeName} marked ${status}`);
+  };
+
+  const renderPhoneCheckin = () => {
+    const employee = data.employees.find((item) => String(item.id) === String(phoneCheckinId));
+    if (!employee) return null;
+
+    return (
+      <div className="phone-checkin-shell">
+        <div className="phone-checkin-box">
+          <div className="brand-mark large">SB</div>
+          <div className="eyebrow">Smart Biz attendance</div>
+          <h1>Good morning, {employee.name}</h1>
+          <p>Choose your attendance status for today.</p>
+          <div className="phone-status-grid">
+            {['Present', 'Absent', 'Remote'].map((status) => (
+              <button key={status} type="button" className={`phone-status-button ${status.toLowerCase()} ${employee.status === status ? 'selected' : ''}`} onClick={() => handleEmployeeStatus(employee.name, status)}>
+                {status}
+              </button>
+            ))}
+          </div>
+          <div className="phone-checkin-note">Current status: <strong>{employee.status}</strong></div>
+          <div className="demo-note">You can close this page after submitting.</div>
+        </div>
+      </div>
+    );
   };
 
   const handleSave = () => {
@@ -869,41 +923,86 @@ export default function App() {
   );
 
   const renderAttendance = () => (
-    <div className="panel full-width-panel">
-      <div className="panel-header">
-        <h2>Attendance Tracker</h2>
+    <div className="workspace-panel attendance-workspace">
+      <div className="panel full-width-panel">
+        <div className="panel-header">
+          <div>
+            <h2>Attendance Tracker</h2>
+            <div className="task-meta">Use the toggle to mark Present, Absent, or Remote.</div>
+          </div>
+          <span className="badge success">Today</span>
+        </div>
+
+        <div className="attendance-status-grid">
+          {data.employees.map((person) => (
+            <div className="attendance-person" key={person.id}>
+              <div>
+                <div className="task-title">{person.name}</div>
+                <div className="task-meta">{person.role}</div>
+              </div>
+              <div className="attendance-toggle" role="group" aria-label={`Attendance status for ${person.name}`}>
+                {['Present', 'Absent', 'Remote'].map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`status-toggle ${person.status === status ? 'selected' : ''} ${status.toLowerCase()}`}
+                    onClick={() => handleEmployeeStatus(person.name, status)}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="small-btn" onClick={() => setQrEmployeeId(person.id)}>Phone QR</button>
+            </div>
+          ))}
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Mon</th>
+              <th>Tue</th>
+              <th>Wed</th>
+              <th>Thu</th>
+              <th>Fri</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.attendance.map((person) => (
+              <tr key={person.employee}>
+                <td>{person.employee}</td>
+                {['mon', 'tue', 'wed', 'thu', 'fri'].map((day) => (
+                  <td key={`${person.employee}-${day}`}>
+                    <select value={person[day]} onChange={(event) => handleAttendanceChange(person.employee, day, event.target.value)}>
+                      <option>Present</option>
+                      <option>Remote</option>
+                      <option>Late</option>
+                      <option>Absent</option>
+                      <option>Leave</option>
+                    </select>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Mon</th>
-            <th>Tue</th>
-            <th>Wed</th>
-            <th>Thu</th>
-            <th>Fri</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.attendance.map((person) => (
-            <tr key={person.employee}>
-              <td>{person.employee}</td>
-              {['mon', 'tue', 'wed', 'thu', 'fri'].map((day) => (
-                <td key={`${person.employee}-${day}`}>
-                  <select value={person[day]} onChange={(event) => handleAttendanceChange(person.employee, day, event.target.value)}>
-                    <option>Present</option>
-                    <option>Remote</option>
-                    <option>Late</option>
-                    <option>Absent</option>
-                    <option>Leave</option>
-                  </select>
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {qrEmployeeId && (
+        <div className="panel qr-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Phone check-in</h2>
+              <div className="task-meta">Scan this QR code with the employee phone.</div>
+            </div>
+            <button type="button" className="tiny-btn" onClick={() => setQrEmployeeId(null)}>Close</button>
+          </div>
+          {qrImage && <img className="attendance-qr" src={qrImage} alt="Employee phone check-in QR code" />}
+          <div className="task-title">{data.employees.find((item) => item.id === qrEmployeeId)?.name}</div>
+          <div className="task-meta">The phone check-in page offers the same Present, Absent, and Remote toggles.</div>
+        </div>
+      )}
     </div>
   );
 
@@ -1064,6 +1163,12 @@ export default function App() {
       </div>
     </div>
   );
+
+  if (phoneCheckinId) {
+    return renderPhoneCheckin() || (
+      <div className="login-shell"><div className="login-box"><h1>Check-in link expired</h1><p>Ask your administrator for a new QR code.</p></div></div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
