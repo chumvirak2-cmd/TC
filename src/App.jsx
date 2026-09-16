@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
 const USERS_STORAGE_KEY = 'ai-admin-hr-users-v1';
@@ -155,6 +156,7 @@ export default function App() {
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [qrEmployeeId, setQrEmployeeId] = useState(null);
   const [qrImage, setQrImage] = useState('');
+  const [remoteReady, setRemoteReady] = useState(!isSupabaseConfigured);
   const [phoneCheckinId] = useState(() => {
     if (typeof window === 'undefined') return '';
     return new URLSearchParams(window.location.search).get('checkin') || '';
@@ -165,6 +167,55 @@ export default function App() {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
   }, [data]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+
+    let active = true;
+    const loadRemoteState = async () => {
+      const { data: row, error } = await supabase
+        .from('app_state')
+        .select('data')
+        .eq('id', 'shared')
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        setStatusMessage('Cloud sync unavailable. Using local data.');
+      } else if (row?.data) {
+        setData(normalizeData(row.data) || defaultData);
+      }
+      setRemoteReady(true);
+    };
+
+    loadRemoteState();
+
+    const channel = supabase
+      .channel('smart-biz-app-state')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.shared' }, (payload) => {
+        const nextData = normalizeData(payload.new.data);
+        if (nextData) {
+          setData((current) => (JSON.stringify(current) === JSON.stringify(nextData) ? current : nextData));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !remoteReady) return;
+
+    supabase
+      .from('app_state')
+      .upsert({ id: 'shared', data, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+      .then(({ error }) => {
+        if (error) setStatusMessage('Cloud save failed. Local data is still saved.');
+      });
+  }, [data, remoteReady]);
 
   useEffect(() => {
     const employee = data.employees.find((item) => String(item.id) === String(qrEmployeeId));
@@ -1264,6 +1315,9 @@ export default function App() {
             <h1>Smart Biz Management Workflow</h1>
           </div>
           <div className="topbar-actions">
+            <span className={`sync-indicator ${isSupabaseConfigured ? 'cloud' : 'local'}`}>
+              {isSupabaseConfigured ? 'Cloud sync' : 'Local mode'}
+            </span>
             <button className="ghost-btn" onClick={handleSave}>Save</button>
             <button className="ghost-btn" onClick={handleLoad}>Load</button>
             <button className="ghost-btn" onClick={handleExport}>Export</button>

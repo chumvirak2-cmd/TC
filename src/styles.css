@@ -951,6 +951,25 @@ th {
     flex-direction: column;
   }
 
+  .sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .sync-indicator.cloud {
+    background: var(--success-soft);
+    color: #166534;
+  }
+
+  .sync-indicator.local {
+    background: var(--bg-soft);
+    color: var(--muted);
+  }
+
   .topbar-actions > *,
   .form-actions > *,
   .leave-actions > * {
