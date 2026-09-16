@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
+import { jsPDF } from 'jspdf';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const STORAGE_KEY = 'ai-admin-hr-system-v1';
@@ -224,7 +225,8 @@ export default function App() {
       return;
     }
 
-    const checkInUrl = `${window.location.origin}${window.location.pathname}?checkin=${encodeURIComponent(employee.id)}`;
+    const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://ai-for-biz-ten.vercel.app';
+    const checkInUrl = `${publicAppUrl}/?checkin=${encodeURIComponent(employee.id)}`;
     QRCode.toDataURL(checkInUrl, { width: 220, margin: 2 })
       .then(setQrImage)
       .catch(() => setQrImage(''));
@@ -463,15 +465,44 @@ export default function App() {
   const handleTelegramEmployeeReport = () => {
     if (typeof window === 'undefined') return;
 
-    const report = [
+    const reportLines = [
       'Smart Biz Management Workflow - Employee Report',
       `Generated: ${new Date().toLocaleString()}`,
       '',
       ...data.employees.map((person, index) => `${index + 1}. ${person.name} | ${person.role} | ${person.team} | ${person.status} | Score: ${person.score}%`),
-    ].join('\n');
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(report)}`;
+    ];
+    const report = reportLines.join('\n');
+    const pdf = new jsPDF();
+    pdf.setFontSize(16);
+    pdf.text('Smart Biz Management Workflow', 15, 18);
+    pdf.setFontSize(12);
+    pdf.text('Employee Report', 15, 27);
+    pdf.setFontSize(9);
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, 35);
+    let y = 47;
+    data.employees.forEach((person, index) => {
+      const line = `${index + 1}. ${person.name} | ${person.role} | ${person.team} | ${person.status} | Score: ${person.score}%`;
+      const wrapped = pdf.splitTextToSize(line, 180);
+      if (y + wrapped.length * 6 > 280) {
+        pdf.addPage();
+        y = 20;
+      }
+      pdf.text(wrapped, 15, y);
+      y += wrapped.length * 6 + 3;
+    });
+
+    const pdfFile = new File([pdf.output('blob')], 'smart-biz-employee-report.pdf', { type: 'application/pdf' });
+    if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
+      navigator.share({ title: 'Employee Report', text: 'Smart Biz employee report', files: [pdfFile] })
+        .then(() => setStatusMessage('PDF shared from your phone'))
+        .catch(() => setStatusMessage('PDF created; sharing was cancelled'));
+      return;
+    }
+
+    pdf.save('smart-biz-employee-report.pdf');
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(`${report}\n\nPDF downloaded. Attach smart-biz-employee-report.pdf in Telegram.`)}`;
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
-    setStatusMessage('Telegram share opened');
+    setStatusMessage('PDF downloaded. Attach it in Telegram.');
   };
 
   const handleImport = async (event) => {

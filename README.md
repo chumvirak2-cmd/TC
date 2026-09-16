@@ -14,3 +14,5 @@ The app works in Local mode by default. To sync attendance and CMS changes betwe
 6. Redeploy the app.
 
 The dashboard will show `Cloud sync` when the environment variables are active. Without them, it shows `Local mode` and keeps using browser storage.
+
+For QR attendance, set `VITE_PUBLIC_APP_URL` to the deployed URL. Scanning a QR from a localhost development URL cannot work on an employee phone.
